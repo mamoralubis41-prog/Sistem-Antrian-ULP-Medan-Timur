@@ -1,0 +1,1568 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistem Antrean Terpadu - PT PLN (Persero) UP3 Medan Utara - ULP Medan Timur</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Phosphor Icons -->
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            pln: {
+              blue: '#005b96',
+              darkblue: '#003366',
+              cyan: '#00a8cc',
+              yellow: '#ffcc00',
+              red: '#e63946',
+              gray: '#f8fafc'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @media print {
+      body * {
+        visibility: hidden;
+      }
+      #print-area, #print-area * {
+        visibility: visible;
+      }
+      #print-area {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+      }
+      #report-print-area, #report-print-area * {
+        visibility: visible;
+      }
+      #report-print-area {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        background: white;
+      }
+      .no-print {
+        display: none !important;
+      }
+    }
+    .kiosk-btn {
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .kiosk-btn:active {
+      transform: scale(0.96);
+    }
+    .blinking-anim {
+      animation: blink 1s ease-in-out infinite alternate;
+    }
+    @keyframes blink {
+      from { opacity: 1; transform: scale(1); }
+      to { opacity: 0.85; transform: scale(1.02); }
+    }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 font-sans antialiased min-h-screen flex flex-col">
+
+  <!-- TOP HEADER (Navigasi & Indikator Cloud) -->
+  <header id="main-header" class="bg-pln-darkblue text-white shadow-md border-b-4 border-pln-yellow no-print">
+    <div class="max-w-7xl mx-auto px-4 py-2.5 flex flex-wrap justify-between items-center gap-3">
+      <div class="flex items-center gap-3">
+        <div class="bg-white p-1.5 rounded-lg flex items-center justify-center shadow">
+          <i class="ph-bold ph-lightning text-pln-blue text-2xl"></i>
+        </div>
+        <div>
+          <h1 class="text-base sm:text-lg font-black tracking-wide leading-tight">PT PLN (Persero)</h1>
+          <p class="text-xs text-pln-cyan font-semibold">UP3 Medan Utara - ULP Medan Timur</p>
+        </div>
+      </div>
+
+      <!-- Navigasi View -->
+      <nav class="flex items-center gap-1.5 bg-slate-800/60 p-1 rounded-xl text-xs sm:text-sm font-medium">
+        <button onclick="requestViewChange('tv')" id="nav-btn-tv" class="px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition text-slate-300 hover:text-white">
+          <i class="ph-bold ph-television"></i> <span>Display TV</span>
+        </button>
+        <button onclick="requestViewChange('kiosk')" id="nav-btn-kiosk" class="px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition text-slate-300 hover:text-white">
+          <i class="ph-bold ph-hand-tap"></i> <span>Kios Sentuh</span>
+        </button>
+        <button onclick="requestViewChange('officer')" id="nav-btn-officer" class="px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition text-slate-300 hover:text-white">
+          <i class="ph-bold ph-user-circle"></i> <span>Meja Loket</span>
+          <i id="lock-icon-officer" class="ph-bold ph-lock text-yellow-400 text-xs"></i>
+        </button>
+        <button onclick="requestViewChange('admin')" id="nav-btn-admin" class="px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition text-slate-300 hover:text-white">
+          <i class="ph-bold ph-gear"></i> <span>Admin</span>
+          <i id="lock-icon-admin" class="ph-bold ph-lock text-yellow-400 text-xs"></i>
+        </button>
+      </nav>
+
+      <!-- Status Cloud Sync & Info Login User -->
+      <div class="flex items-center gap-2 text-xs">
+        <!-- Tombol Pengaturan Cloud -->
+        <button onclick="openCloudModal()" id="cloud-status-badge" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center gap-1.5 transition border border-slate-600">
+          <span class="w-2 h-2 rounded-full bg-slate-400" id="cloud-dot"></span>
+          <span id="cloud-label">Mode Offline</span>
+        </button>
+
+        <!-- Akun Pengguna / Tombol Login -->
+        <div id="auth-status-container" class="flex items-center gap-2">
+          <!-- Diisi via JS: status login atau tombol login -->
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- KONTEN UTAMA (4 Tampilan View) -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-5 flex flex-col justify-center">
+
+    <!-- ==================== VIEW 1: DISPLAY TV RUANG TUNGGU (BEBAS / TANPA LOGIN) ==================== -->
+    <div id="view-tv" class="w-full flex-1 flex flex-col gap-4">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 flex-1 items-stretch">
+        
+        <!-- Panggilan Utama Layar Besar -->
+        <div class="lg:col-span-7 bg-white rounded-3xl p-6 sm:p-8 shadow-xl border border-slate-200 flex flex-col justify-between items-center text-center relative overflow-hidden">
+          <div class="absolute top-0 left-0 right-0 h-3 bg-gradient-to-r from-pln-blue via-pln-cyan to-pln-yellow"></div>
+          
+          <div class="w-full flex justify-between items-center text-slate-500 font-bold border-b pb-3">
+            <span class="flex items-center gap-2 text-pln-blue text-sm uppercase tracking-wider">
+              <i class="ph-fill ph-broadcast text-xl text-red-500 animate-pulse"></i> Pemanggilan Aktif
+            </span>
+            <span id="live-clock-tv" class="text-sm font-mono text-slate-600">00:00:00 WIB</span>
+          </div>
+
+          <div class="my-6">
+            <p class="text-slate-500 font-semibold tracking-wider uppercase text-sm sm:text-base mb-2">Nomor Antrean</p>
+            <div id="tv-active-number" class="text-7xl sm:text-9xl font-black text-pln-darkblue tracking-tight blinking-anim font-mono">
+              ---
+            </div>
+            <div class="inline-flex items-center gap-2 mt-4 px-5 py-2 bg-slate-100 rounded-full text-slate-700 font-semibold text-sm sm:text-base border border-slate-200" id="tv-active-service">
+              Menunggu pemanggilan...
+            </div>
+          </div>
+
+          <div class="w-full bg-gradient-to-r from-pln-blue to-pln-darkblue text-white rounded-2xl p-5 shadow-inner flex justify-around items-center">
+            <div>
+              <p class="text-xs uppercase tracking-widest text-pln-cyan font-semibold">Silakan Menuju Ke</p>
+              <h2 id="tv-active-counter" class="text-3xl sm:text-4xl font-extrabold text-pln-yellow">---</h2>
+            </div>
+            <button onclick="playChimeAndCall()" class="bg-white/10 hover:bg-white/20 px-3 py-2 rounded-xl text-xs flex items-center gap-1 font-semibold transition" title="Bunyikan Ulang">
+              <i class="ph-bold ph-speaker-high text-lg"></i> Test Audio
+            </button>
+          </div>
+
+          <div class="text-xs text-slate-400 font-medium mt-3">
+            PT PLN (Persero) UP3 Medan Utara - ULP Medan Timur
+          </div>
+        </div>
+
+        <!-- Status 3 Meja Loket -->
+        <div class="lg:col-span-5 flex flex-col gap-4">
+          
+          <!-- Kartu Loket 1 -->
+          <div class="bg-white rounded-2xl p-4 sm:p-5 shadow-md border-l-8 border-blue-600 flex justify-between items-center">
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="bg-blue-100 text-blue-700 text-xs px-2.5 py-0.5 rounded-full font-bold">KODE A</span>
+                <h3 class="text-lg font-black text-slate-800">LOKET 1</h3>
+              </div>
+              <p class="text-xs text-slate-500 font-medium mt-0.5">Pasang Baru & Tambah Daya</p>
+              <span id="tv-status-1" class="text-[11px] font-semibold text-slate-400 italic">Siaga</span>
+            </div>
+            <div class="text-right font-mono">
+              <span class="text-xs text-slate-400 block font-sans">Melayani</span>
+              <span id="tv-counter-1" class="text-3xl font-black text-blue-700">---</span>
+            </div>
+          </div>
+
+          <!-- Kartu Loket 2 -->
+          <div class="bg-white rounded-2xl p-4 sm:p-5 shadow-md border-l-8 border-emerald-600 flex justify-between items-center">
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="bg-emerald-100 text-emerald-700 text-xs px-2.5 py-0.5 rounded-full font-bold">KODE B</span>
+                <h3 class="text-lg font-black text-slate-800">LOKET 2</h3>
+              </div>
+              <p class="text-xs text-slate-500 font-medium mt-0.5">Pengaduan & Gangguan Teknis</p>
+              <span id="tv-status-2" class="text-[11px] font-semibold text-slate-400 italic">Siaga</span>
+            </div>
+            <div class="text-right font-mono">
+              <span class="text-xs text-slate-400 block font-sans">Melayani</span>
+              <span id="tv-counter-2" class="text-3xl font-black text-emerald-700">---</span>
+            </div>
+          </div>
+
+          <!-- Kartu Loket 3 -->
+          <div class="bg-white rounded-2xl p-4 sm:p-5 shadow-md border-l-8 border-purple-600 flex justify-between items-center">
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="bg-purple-100 text-purple-700 text-xs px-2.5 py-0.5 rounded-full font-bold">KODE C</span>
+                <h3 class="text-lg font-black text-slate-800">LOKET 3</h3>
+              </div>
+              <p class="text-xs text-slate-500 font-medium mt-0.5">Customer Service & Konsultasi</p>
+              <span id="tv-status-3" class="text-[11px] font-semibold text-slate-400 italic">Siaga</span>
+            </div>
+            <div class="text-right font-mono">
+              <span class="text-xs text-slate-400 block font-sans">Melayani</span>
+              <span id="tv-counter-3" class="text-3xl font-black text-purple-700">---</span>
+            </div>
+          </div>
+
+          <!-- Total Antrean Menunggu Ringkasan -->
+          <div class="bg-slate-900 text-white rounded-2xl p-4 flex justify-between items-center shadow-md">
+            <div class="flex items-center gap-3">
+              <i class="ph-bold ph-users-three text-3xl text-pln-cyan"></i>
+              <div>
+                <p class="text-xs text-slate-400">Total Pengunjung Hari Ini</p>
+                <p id="tv-today-total" class="text-xl font-black text-white">0 Orang</p>
+              </div>
+            </div>
+            <div class="text-right">
+              <p class="text-xs text-slate-400">Sisa Menunggu</p>
+              <p id="tv-waiting-total" class="text-xl font-black text-pln-yellow">0 Antrean</p>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Running Text Pengumuman -->
+      <div class="bg-pln-darkblue text-white rounded-2xl px-4 py-2.5 flex items-center shadow-md overflow-hidden border-t-2 border-pln-cyan">
+        <span class="bg-pln-yellow text-slate-900 font-black text-xs px-3 py-1 rounded-md uppercase tracking-wider mr-3 flex-shrink-0">
+          INFORMASI
+        </span>
+        <marquee class="text-sm font-medium tracking-wide">
+          Selamat Datang di PT PLN (Persero) UP3 Medan Utara - ULP Medan Timur. Nikmati kemudahan transaksi listrik melalui aplikasi PLN Mobile. Utamakan Keselamatan Ketenagalistrikan (K2) dan lindungi instalasi rumah Anda.
+        </marquee>
+      </div>
+    </div>
+
+
+    <!-- ==================== VIEW 2: KIOS LAYAR SENTUH PENGUNJUNG (STANDBY CETAK) ==================== -->
+    <div id="view-kiosk" class="hidden w-full flex-1 flex flex-col justify-center items-center py-4">
+      <div class="max-w-4xl w-full text-center mb-6">
+        <span class="inline-block px-3 py-1 bg-blue-100 text-pln-blue text-xs font-bold rounded-full uppercase tracking-wider mb-2">
+          Kios Mandiri Pengunjung
+        </span>
+        <h2 class="text-2xl sm:text-4xl font-black text-slate-900 leading-tight">
+          Silakan Sentuh Layar Sesuai Kebutuhan Anda
+        </h2>
+        <p class="text-slate-500 text-sm sm:text-base mt-1">
+          Karcis antrean akan tercetak secara otomatis dari printer kasir
+        </p>
+      </div>
+
+      <!-- 3 Tombol Besar Layar Sentuh -->
+      <div class="max-w-4xl w-full grid grid-cols-1 md:grid-cols-3 gap-5">
+        
+        <!-- Pilihan 1: Loket 1 (Kode A) -->
+        <button onclick="kioskTakeTicket(1)" class="kiosk-btn bg-white rounded-3xl p-6 sm:p-8 shadow-xl border-2 border-transparent hover:border-blue-500 text-left flex flex-col justify-between group h-64 relative overflow-hidden bg-gradient-to-b from-white to-blue-50/40">
+          <div class="w-12 h-12 rounded-2xl bg-blue-100 text-blue-700 flex items-center justify-center text-2xl font-black mb-4 group-hover:scale-110 transition">
+            A
+          </div>
+          <div>
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold uppercase tracking-wider text-blue-600">LOKET 1</span>
+              <span id="kiosk-wait-1" class="text-xs bg-slate-100 px-2 py-0.5 rounded-full font-semibold text-slate-600">0 Antre</span>
+            </div>
+            <h3 class="text-xl sm:text-2xl font-black text-slate-900 leading-snug mt-1">
+              Pasang Baru & Tambah Daya
+            </h3>
+            <p class="text-xs text-slate-500 mt-1">Permohonan daya baru, ubah tarif, & migrasi prabayar</p>
+          </div>
+          <div class="mt-4 flex items-center justify-between text-xs font-bold text-blue-600 border-t pt-3">
+            <span>Ambil Karcis A</span>
+            <i class="ph-bold ph-printer text-lg"></i>
+          </div>
+        </button>
+
+        <!-- Pilihan 2: Loket 2 (Kode B) -->
+        <button onclick="kioskTakeTicket(2)" class="kiosk-btn bg-white rounded-3xl p-6 sm:p-8 shadow-xl border-2 border-transparent hover:border-emerald-500 text-left flex flex-col justify-between group h-64 relative overflow-hidden bg-gradient-to-b from-white to-emerald-50/40">
+          <div class="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center text-2xl font-black mb-4 group-hover:scale-110 transition">
+            B
+          </div>
+          <div>
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold uppercase tracking-wider text-emerald-600">LOKET 2</span>
+              <span id="kiosk-wait-2" class="text-xs bg-slate-100 px-2 py-0.5 rounded-full font-semibold text-slate-600">0 Antre</span>
+            </div>
+            <h3 class="text-xl sm:text-2xl font-black text-slate-900 leading-snug mt-1">
+              Pengaduan & Gangguan
+            </h3>
+            <p class="text-xs text-slate-500 mt-1">KWh meter rusak, token periksa, pemadaman teknis</p>
+          </div>
+          <div class="mt-4 flex items-center justify-between text-xs font-bold text-emerald-600 border-t pt-3">
+            <span>Ambil Karcis B</span>
+            <i class="ph-bold ph-printer text-lg"></i>
+          </div>
+        </button>
+
+        <!-- Pilihan 3: Loket 3 (Kode C) -->
+        <button onclick="kioskTakeTicket(3)" class="kiosk-btn bg-white rounded-3xl p-6 sm:p-8 shadow-xl border-2 border-transparent hover:border-purple-500 text-left flex flex-col justify-between group h-64 relative overflow-hidden bg-gradient-to-b from-white to-purple-50/40">
+          <div class="w-12 h-12 rounded-2xl bg-purple-100 text-purple-700 flex items-center justify-center text-2xl font-black mb-4 group-hover:scale-110 transition">
+            C
+          </div>
+          <div>
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold uppercase tracking-wider text-purple-600">LOKET 3</span>
+              <span id="kiosk-wait-3" class="text-xs bg-slate-100 px-2 py-0.5 rounded-full font-semibold text-slate-600">0 Antre</span>
+            </div>
+            <h3 class="text-xl sm:text-2xl font-black text-slate-900 leading-snug mt-1">
+              Customer Service
+            </h3>
+            <p class="text-xs text-slate-500 mt-1">Konsultasi kelistrikan, cek tagihan, & informasi umum</p>
+          </div>
+          <div class="mt-4 flex items-center justify-between text-xs font-bold text-purple-600 border-t pt-3">
+            <span>Ambil Karcis C</span>
+            <i class="ph-bold ph-printer text-lg"></i>
+          </div>
+        </button>
+
+      </div>
+    </div>
+
+
+    <!-- ==================== VIEW 3: PANEL PETUGAS MEJA LOKET (WAJIB LOGIN) ==================== -->
+    <div id="view-officer" class="hidden w-full flex-1 flex flex-col gap-5">
+      
+      <!-- Pemilih Meja Loket Berukuran Besar -->
+      <div class="bg-white rounded-3xl p-4 sm:p-5 shadow-lg border border-slate-200">
+        <div class="flex justify-between items-center mb-3">
+          <h2 class="text-sm font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
+            <i class="ph-bold ph-desktop text-lg text-pln-blue"></i> Pilih Meja Kerja Laptop Ini:
+          </h2>
+          <span class="text-xs bg-blue-100 text-pln-blue font-bold px-3 py-1 rounded-full" id="officer-active-badge">
+            Aktif di Loket 1
+          </span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <button onclick="selectOfficerCounter(1)" id="btn-select-counter-1" class="p-4 rounded-2xl border-2 text-left transition flex items-center justify-between bg-blue-50 border-blue-600">
+            <div>
+              <span class="text-xs font-bold text-blue-700 bg-blue-200 px-2 py-0.5 rounded">Kode A</span>
+              <h4 class="text-lg font-black text-slate-900 mt-1">LOKET 1</h4>
+              <p class="text-xs text-slate-500">Pasang Baru & Tambah Daya</p>
+            </div>
+            <i class="ph-fill ph-check-circle text-2xl text-blue-600"></i>
+          </button>
+
+          <button onclick="selectOfficerCounter(2)" id="btn-select-counter-2" class="p-4 rounded-2xl border-2 text-left transition flex items-center justify-between bg-white border-slate-200 hover:border-slate-400">
+            <div>
+              <span class="text-xs font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded">Kode B</span>
+              <h4 class="text-lg font-black text-slate-900 mt-1">LOKET 2</h4>
+              <p class="text-xs text-slate-500">Pengaduan & Gangguan</p>
+            </div>
+            <i class="ph-bold ph-circle text-2xl text-slate-300"></i>
+          </button>
+
+          <button onclick="selectOfficerCounter(3)" id="btn-select-counter-3" class="p-4 rounded-2xl border-2 text-left transition flex items-center justify-between bg-white border-slate-200 hover:border-slate-400">
+            <div>
+              <span class="text-xs font-bold text-purple-700 bg-purple-100 px-2 py-0.5 rounded">Kode C</span>
+              <h4 class="text-lg font-black text-slate-900 mt-1">LOKET 3</h4>
+              <p class="text-xs text-slate-500">Customer Service</p>
+            </div>
+            <i class="ph-bold ph-circle text-2xl text-slate-300"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Kontrol Panggilan & Statistik Pengunjung Hari Ini -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+        
+        <!-- Kolom Kontrol Panggilan -->
+        <div class="lg:col-span-8 bg-white rounded-3xl p-6 shadow-xl border border-slate-200 flex flex-col justify-between">
+          <div class="flex justify-between items-center border-b pb-4">
+            <div>
+              <span class="text-xs font-bold uppercase text-slate-400">Pelanggan Sedang Dilayani</span>
+              <h3 id="officer-counter-title" class="text-xl font-black text-slate-800">LOKET 1 (Kode A)</h3>
+            </div>
+            <span id="officer-ticket-status" class="px-3 py-1 bg-yellow-100 text-yellow-800 text-xs font-bold rounded-full">
+              Siaga / Kosong
+            </span>
+          </div>
+
+          <div class="py-8 text-center">
+            <p class="text-sm text-slate-400 font-semibold uppercase tracking-wider mb-2">Nomor Antrean Aktif</p>
+            <div id="officer-current-number" class="text-7xl sm:text-8xl font-black text-slate-900 font-mono tracking-tight">
+              ---
+            </div>
+            <p id="officer-current-time" class="text-xs text-slate-400 mt-2">Belum ada panggilan aktif</p>
+          </div>
+
+          <!-- Tombol Aksi Petugas -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-4 border-t">
+            <button onclick="officerCallNext()" class="py-4 px-4 bg-green-600 hover:bg-green-700 active:scale-95 text-white font-bold rounded-2xl flex items-center justify-center gap-2 shadow-lg transition">
+              <i class="ph-bold ph-skip-forward text-xl"></i>
+              <span>Panggil Selanjutnya</span>
+            </button>
+            <button onclick="officerRecall()" class="py-4 px-4 bg-amber-500 hover:bg-amber-600 active:scale-95 text-white font-bold rounded-2xl flex items-center justify-center gap-2 shadow-lg transition">
+              <i class="ph-bold ph-speaker-high text-xl"></i>
+              <span>Panggil Ulang (Suara)</span>
+            </button>
+            <button onclick="officerComplete()" class="py-4 px-4 bg-slate-700 hover:bg-slate-800 active:scale-95 text-white font-bold rounded-2xl flex items-center justify-center gap-2 shadow-lg transition">
+              <i class="ph-bold ph-check text-xl"></i>
+              <span>Selesai Dilayani</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Kolom Hitung Otomatis & Daftar Antrean Tunggu -->
+        <div class="lg:col-span-4 flex flex-col gap-4">
+          
+          <!-- Metrik Pengunjung Hari Ini Per-Loket -->
+          <div class="bg-slate-900 text-white rounded-3xl p-5 shadow-lg">
+            <h4 class="text-xs font-bold uppercase tracking-wider text-pln-cyan mb-3 flex items-center gap-2">
+              <i class="ph-bold ph-chart-bar"></i> Statistik Hari Ini (Loket Ini)
+            </h4>
+            <div class="grid grid-cols-3 gap-2 text-center">
+              <div class="bg-slate-800 p-2.5 rounded-xl">
+                <span class="text-[11px] text-slate-400 block">Masuk</span>
+                <span id="officer-stat-in" class="text-xl font-black text-white font-mono">0</span>
+              </div>
+              <div class="bg-slate-800 p-2.5 rounded-xl">
+                <span class="text-[11px] text-yellow-400 block">Antre</span>
+                <span id="officer-stat-wait" class="text-xl font-black text-yellow-400 font-mono">0</span>
+              </div>
+              <div class="bg-slate-800 p-2.5 rounded-xl">
+                <span class="text-[11px] text-emerald-400 block">Selesai</span>
+                <span id="officer-stat-done" class="text-xl font-black text-emerald-400 font-mono">0</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Daftar Antrean Tunggu Loket Ini -->
+          <div class="bg-white rounded-3xl p-5 shadow-lg border border-slate-200 flex-1 flex flex-col">
+            <div class="flex justify-between items-center mb-3">
+              <h4 class="text-xs font-bold uppercase tracking-wider text-slate-600">Urutan Antrean Menunggu</h4>
+              <span id="officer-waiting-badge" class="text-xs bg-slate-100 font-bold px-2 py-0.5 rounded text-slate-600">0 orang</span>
+            </div>
+            <div id="officer-queue-list" class="flex-1 overflow-y-auto max-h-56 space-y-2 pr-1 text-sm">
+              <div class="text-center text-slate-400 py-8 text-xs italic">
+                Tidak ada antrean menunggu
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+
+
+    <!-- ==================== VIEW 4: DASHBOARD ADMIN UTAMA (WAJIB LOGIN) ==================== -->
+    <div id="view-admin" class="hidden w-full flex-1 flex flex-col gap-5">
+      
+      <!-- Baris Atas: Rekap Pengunjung Hari Ini & Tombol Ekspor -->
+      <div class="bg-white rounded-3xl p-6 shadow-xl border border-slate-200">
+        <div class="flex flex-wrap justify-between items-center gap-4 mb-5 border-b pb-4">
+          <div>
+            <h2 class="text-xl font-black text-slate-900">Dashboard Kontrol Administrator</h2>
+            <p class="text-xs text-slate-500">PT PLN (Persero) UP3 Medan Utara - ULP Medan Timur</p>
+          </div>
+          <div class="flex flex-wrap items-center gap-2">
+            <!-- Tombol Ekspor Excel (.csv) -->
+            <button onclick="exportToExcel()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow transition">
+              <i class="ph-bold ph-microsoft-excel-logo text-base"></i> Ekspor Excel (.csv)
+            </button>
+            <!-- Tombol Cetak / Simpan PDF -->
+            <button onclick="printPdfReport()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow transition">
+              <i class="ph-bold ph-printer text-base"></i> Cetak / Unduh PDF
+            </button>
+            <!-- Reset Antrean Harian -->
+            <button onclick="promptResetQueue()" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow transition">
+              <i class="ph-bold ph-arrow-counter-clockwise text-base"></i> Reset Antrean Hari Ini
+            </button>
+          </div>
+        </div>
+
+        <!-- 4 Kotak Ringkasan Utama Pengunjung Hari Ini -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="bg-blue-50 p-4 rounded-2xl border border-blue-200">
+            <span class="text-xs font-bold text-blue-700 block uppercase">Total Pengunjung</span>
+            <span id="admin-stat-total" class="text-3xl font-black text-blue-900 font-mono mt-1 block">0</span>
+            <span class="text-[11px] text-blue-600">Tiket terbit sejak pagi</span>
+          </div>
+
+          <div class="bg-emerald-50 p-4 rounded-2xl border border-emerald-200">
+            <span class="text-xs font-bold text-emerald-700 block uppercase">Selesai Dilayani</span>
+            <span id="admin-stat-done" class="text-3xl font-black text-emerald-900 font-mono mt-1 block">0</span>
+            <span class="text-[11px] text-emerald-600">Pelanggan tuntas</span>
+          </div>
+
+          <div class="bg-amber-50 p-4 rounded-2xl border border-amber-200">
+            <span class="text-xs font-bold text-amber-700 block uppercase">Sisa Menunggu</span>
+            <span id="admin-stat-wait" class="text-3xl font-black text-amber-900 font-mono mt-1 block">0</span>
+            <span class="text-[11px] text-amber-600">Sedang antre di ruangan</span>
+          </div>
+
+          <div class="bg-purple-50 p-4 rounded-2xl border border-purple-200">
+            <span class="text-xs font-bold text-purple-700 block uppercase">Loket Aktif</span>
+            <span class="text-3xl font-black text-purple-900 font-mono mt-1 block">3</span>
+            <span class="text-[11px] text-purple-600">Loket 1, 2, dan 3</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Manajemen Akun & Ubah Kata Sandi Petugas Loket 1 - 3 -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+        
+        <!-- Formulir Ubah Kata Sandi -->
+        <div class="lg:col-span-5 bg-white rounded-3xl p-6 shadow-xl border border-slate-200">
+          <h3 class="text-base font-black text-slate-900 flex items-center gap-2 mb-1">
+            <i class="ph-bold ph-key text-pln-blue text-lg"></i> Ubah Sandi Petugas Loket
+          </h3>
+          <p class="text-xs text-slate-500 mb-4">Ubah kata sandi akses untuk akun Loket 1, Loket 2, atau Loket 3</p>
+
+          <form id="form-change-password" onsubmit="handleAdminChangePassword(event)" class="space-y-3.5 text-xs">
+            <div>
+              <label class="block font-bold text-slate-700 mb-1">Pilih Akun Petugas Loket:</label>
+              <select id="pwd-target-user" class="w-full px-3 py-2.5 rounded-xl border border-slate-300 font-semibold focus:ring-2 focus:ring-pln-blue focus:outline-none">
+                <option value="loket1">Loket 1 - Pasang Baru & Tambah Daya (Kode A)</option>
+                <option value="loket2">Loket 2 - Pengaduan & Gangguan (Kode B)</option>
+                <option value="loket3">Loket 3 - Customer Service (Kode C)</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block font-bold text-slate-700 mb-1">Kata Sandi Baru:</label>
+              <input type="text" id="pwd-new-value" required minlength="4" placeholder="Ketik sandi baru minimal 4 karakter..." class="w-full px-3 py-2.5 rounded-xl border border-slate-300 font-medium focus:ring-2 focus:ring-pln-blue focus:outline-none">
+            </div>
+
+            <button type="submit" class="w-full py-2.5 bg-pln-blue hover:bg-pln-darkblue text-white font-bold rounded-xl shadow transition flex items-center justify-center gap-2">
+              <i class="ph-bold ph-floppy-disk text-base"></i> Simpan Kata Sandi Baru
+            </button>
+          </form>
+        </div>
+
+        <!-- Tabel Akun Petugas & Kredensial Aktif -->
+        <div class="lg:col-span-7 bg-white rounded-3xl p-6 shadow-xl border border-slate-200 flex flex-col justify-between">
+          <div>
+            <h3 class="text-base font-black text-slate-900 flex items-center gap-2 mb-1">
+              <i class="ph-bold ph-shield-check text-emerald-600 text-lg"></i> Daftar Akun & Hak Akses
+            </h3>
+            <p class="text-xs text-slate-500 mb-4">Informasi username dan peran akses setiap petugas</p>
+
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs border border-slate-200 rounded-xl overflow-hidden">
+                <thead class="bg-slate-100 text-slate-700 font-bold">
+                  <tr>
+                    <th class="p-2.5 border-b">Username</th>
+                    <th class="p-2.5 border-b">Peran / Meja</th>
+                    <th class="p-2.5 border-b">Kode</th>
+                    <th class="p-2.5 border-b">Sandi Saat Ini</th>
+                  </tr>
+                </thead>
+                <tbody id="admin-user-table-body" class="divide-y divide-slate-200">
+                  <!-- Diisi otomatis oleh JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="bg-amber-50 p-3 rounded-xl border border-amber-200 text-[11px] text-amber-800 mt-4 flex items-start gap-2">
+            <i class="ph-bold ph-info text-base text-amber-600 flex-shrink-0 mt-0.5"></i>
+            <span>Sandi tersimpan secara aman di peramban dan akan otomatis tersinkronisasi jika mode Cloud Active telah terhubung.</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Tabel Riwayat Kunjungan Pengunjung Hari Ini -->
+      <div class="bg-white rounded-3xl p-6 shadow-xl border border-slate-200">
+        <h3 class="text-base font-black text-slate-900 mb-1">Log Riwayat Pengunjung Hari Ini</h3>
+        <p class="text-xs text-slate-500 mb-4">Data lengkap karcis yang diterbitkan beserta waktu pelayanan</p>
+
+        <div class="overflow-x-auto max-h-72">
+          <table class="w-full text-left text-xs border border-slate-200">
+            <thead class="bg-slate-100 text-slate-700 font-bold sticky top-0">
+              <tr>
+                <th class="p-2.5 border-b">No</th>
+                <th class="p-2.5 border-b">Tiket</th>
+                <th class="p-2.5 border-b">Loket Tujuan</th>
+                <th class="p-2.5 border-b">Jam Ambil</th>
+                <th class="p-2.5 border-b">Jam Panggil</th>
+                <th class="p-2.5 border-b">Jam Selesai</th>
+                <th class="p-2.5 border-b">Status</th>
+              </tr>
+            </thead>
+            <tbody id="admin-log-table-body" class="divide-y divide-slate-200">
+              <tr>
+                <td colspan="7" class="p-4 text-center text-slate-400 italic">Belum ada aktivitas antrean hari ini</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- ==================== MODAL 1: FORM LOGIN PETUGAS (RBAC PROTEKSI) ==================== -->
+  <div id="auth-modal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white max-w-sm w-full rounded-3xl p-6 shadow-2xl border border-slate-200 relative">
+      <button onclick="closeAuthModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600">
+        <i class="ph-bold ph-x text-lg"></i>
+      </button>
+
+      <div class="text-center mb-5">
+        <div class="w-12 h-12 bg-blue-100 text-pln-blue rounded-2xl flex items-center justify-center text-2xl mx-auto mb-2 shadow">
+          <i class="ph-bold ph-lock-key"></i>
+        </div>
+        <h3 class="text-lg font-black text-slate-900">Login Akses Petugas</h3>
+        <p class="text-xs text-slate-500" id="auth-modal-subtitle">Silakan masukkan username dan sandi akun</p>
+      </div>
+
+      <form id="form-login" onsubmit="handleLoginSubmit(event)" class="space-y-3.5 text-xs">
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Username:</label>
+          <input type="text" id="login-username" required placeholder="admin / loket1 / loket2 / loket3" class="w-full px-3 py-2.5 rounded-xl border border-slate-300 font-medium focus:ring-2 focus:ring-pln-blue focus:outline-none">
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Kata Sandi:</label>
+          <input type="password" id="login-password" required placeholder="Masukkan kata sandi..." class="w-full px-3 py-2.5 rounded-xl border border-slate-300 font-medium focus:ring-2 focus:ring-pln-blue focus:outline-none">
+        </div>
+
+        <div id="login-error-msg" class="text-rose-600 font-semibold text-center hidden">
+          Username atau kata sandi tidak cocok!
+        </div>
+
+        <button type="submit" class="w-full py-2.5 bg-pln-blue hover:bg-pln-darkblue text-white font-bold rounded-xl shadow transition flex items-center justify-center gap-2 text-sm mt-2">
+          <i class="ph-bold ph-sign-in"></i> Masuk Sekarang
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL 2: PENGATURAN DATABASE CLOUD (6 PERANGKAT) ==================== -->
+  <div id="cloud-modal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white max-w-lg w-full rounded-3xl p-6 shadow-2xl border border-slate-200 relative">
+      <button onclick="closeCloudModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600">
+        <i class="ph-bold ph-x text-lg"></i>
+      </button>
+
+      <div class="flex items-center gap-3 mb-4">
+        <div class="w-10 h-10 rounded-2xl bg-blue-100 text-pln-blue flex items-center justify-center text-xl">
+          <i class="ph-bold ph-cloud"></i>
+        </div>
+        <div>
+          <h3 class="text-base font-black text-slate-900">Hubungkan 6 Perangkat (Cloud Sync)</h3>
+          <p class="text-xs text-slate-500">Firebase Realtime Database URL</p>
+        </div>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Firebase Realtime Database URL:</label>
+          <input type="text" id="firebase-url-input" placeholder="https://pln-antrian-ulpmedantimur-default-rtdb.asia-southeast1.firebasedatabase.app" class="w-full px-3 py-2 rounded-xl border border-slate-300 font-mono text-xs focus:ring-2 focus:ring-pln-blue focus:outline-none">
+        </div>
+
+        <div class="bg-slate-50 p-3 rounded-xl border text-[11px] text-slate-600 space-y-1">
+          <p class="font-bold text-slate-800">Tautan Langsung Perangkat di Kantor:</p>
+          <p class="font-mono text-blue-600">Layar TV: <span class="text-slate-800">[URL-Web]#tv</span> (Bebas tanpa login)</p>
+          <p class="font-mono text-blue-600">Kios Tamu: <span class="text-slate-800">[URL-Web]#kiosk</span> (Bebas tanpa login)</p>
+          <p class="font-mono text-blue-600">Laptop Loket: <span class="text-slate-800">[URL-Web]#officer</span> (Wajib login)</p>
+          <p class="font-mono text-blue-600">Laptop Admin: <span class="text-slate-800">[URL-Web]#admin</span> (Wajib login)</p>
+        </div>
+
+        <div class="flex justify-end gap-2 pt-2">
+          <button onclick="closeCloudModal()" class="px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-100 font-semibold">Tutup</button>
+          <button onclick="saveFirebaseUrl()" class="px-4 py-2 bg-pln-blue hover:bg-pln-darkblue text-white font-bold rounded-xl shadow">Simpan & Hubungkan</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== AREA CETAK STRUK THERMAL PENGUNJUNG (POS 58/80mm) ==================== -->
+  <div id="print-area" class="hidden">
+    <div style="font-family: monospace; width: 280px; padding: 10px; text-align: center; color: black; line-height: 1.2;">
+      <p style="font-size: 11px; font-weight: bold; margin: 0;">PT PLN (PERSERO)</p>
+      <p style="font-size: 9px; margin: 2px 0;">UP3 MEDAN UTARA - ULP MEDAN TIMUR</p>
+      <p style="font-size: 9px; margin: 0;">Jl. KL Yos Sudarso No.115, Medan</p>
+      <hr style="border-top: 1px dashed black; margin: 8px 0;">
+      
+      <p style="font-size: 10px; margin: 0; text-transform: uppercase;" id="ticket-print-target">LOKET 1</p>
+      <p style="font-size: 9px; margin: 2px 0;" id="ticket-print-service">PASANG BARU & TAMBAH DAYA</p>
+      <h1 style="font-size: 42px; font-weight: 900; margin: 8px 0;" id="ticket-print-code">A001</h1>
+      
+      <p style="font-size: 9px; margin: 2px 0;">Sisa Menunggu di Depan: <b id="ticket-print-waiting">0</b> orang</p>
+      <p style="font-size: 8px; margin: 4px 0 0 0;" id="ticket-print-time">30/10/2026 15:30:00</p>
+      <hr style="border-top: 1px dashed black; margin: 8px 0;">
+      <p style="font-size: 8px; margin: 0;">Terima kasih atas kunjungan Anda.<br>Gunakan aplikasi PLN Mobile untuk kemudahan layanan kelistrikan.</p>
+    </div>
+  </div>
+
+  <!-- ==================== AREA CETAK LAPORAN REKAPITULASI RESMI PDF ==================== -->
+  <div id="report-print-area" class="hidden">
+    <div style="padding: 24px; font-family: Arial, sans-serif; color: #1e293b;">
+      <div style="border-bottom: 2px solid #005b96; padding-bottom: 12px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <h2 style="font-size: 16px; font-weight: bold; color: #003366; margin: 0;">PT PLN (PERSERO)</h2>
+          <p style="font-size: 12px; font-weight: bold; color: #005b96; margin: 2px 0;">UP3 MEDAN UTARA - ULP MEDAN TIMUR</p>
+          <p style="font-size: 10px; color: #64748b; margin: 0;">Laporan Rekapitulasi Pelayanan Antrean Harian</p>
+        </div>
+        <div style="text-align: right; font-size: 10px; color: #64748b;">
+          <p style="margin: 0;">Tanggal Cetak: <b id="report-date-print">30/10/2026</b></p>
+          <p style="margin: 2px 0;">Dicetak Oleh: <b id="report-admin-user">Administrator</b></p>
+        </div>
+      </div>
+
+      <h3 style="font-size: 13px; font-weight: bold; margin-bottom: 8px;">1. Ringkasan Kinerja Loket</h3>
+      <table style="width: 100%; border-collapse: collapse; font-size: 10px; margin-bottom: 16px;">
+        <thead>
+          <tr style="background-color: #f1f5f9; text-align: left;">
+            <th style="border: 1px solid #cbd5e1; padding: 6px;">Nama Loket</th>
+            <th style="border: 1px solid #cbd5e1; padding: 6px;">Kode</th>
+            <th style="border: 1px solid #cbd5e1; padding: 6px;">Jenis Layanan</th>
+            <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: center;">Total Karcis</th>
+            <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: center;">Selesai</th>
+            <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: center;">Menunggu</th>
+          </tr>
+        </thead>
+        <tbody id="report-table-summary">
+          <!-- Diisi JS -->
+        </tbody>
+      </table>
+
+      <h3 style="font-size: 13px; font-weight: bold; margin-bottom: 8px;">2. Rincian Pengunjung Hari Ini</h3>
+      <table style="width: 100%; border-collapse: collapse; font-size: 9px; margin-bottom: 24px;">
+        <thead>
+          <tr style="background-color: #f1f5f9; text-align: left;">
+            <th style="border: 1px solid #cbd5e1; padding: 4px;">No</th>
+            <th style="border: 1px solid #cbd5e1; padding: 4px;">Kode Tiket</th>
+            <th style="border: 1px solid #cbd5e1; padding: 4px;">Loket Tujuan</th>
+            <th style="border: 1px solid #cbd5e1; padding: 4px;">Jam Masuk</th>
+            <th style="border: 1px solid #cbd5e1; padding: 4px;">Jam Dipanggil</th>
+            <th style="border: 1px solid #cbd5e1; padding: 4px;">Jam Selesai</th>
+            <th style="border: 1px solid #cbd5e1; padding: 4px;">Status</th>
+          </tr>
+        </thead>
+        <tbody id="report-table-logs">
+          <!-- Diisi JS -->
+        </tbody>
+      </table>
+
+      <div style="display: flex; justify-content: space-between; margin-top: 30px; font-size: 10px;">
+        <div style="text-align: center; width: 200px;">
+          <p style="margin-bottom: 50px;">Petugas Loket / Operator,</p>
+          <p style="border-bottom: 1px solid black; font-weight: bold; margin: 0;">( ..................................... )</p>
+        </div>
+        <div style="text-align: center; width: 200px;">
+          <p style="margin-bottom: 50px;">Mengetahui,<br>Supervisor Pelayanan Pelanggan</p>
+          <p style="border-bottom: 1px solid black; font-weight: bold; margin: 0;">( ..................................... )</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ==================== JAVASCRIPT LOGIC ==================== -->
+  <script>
+    // 1. DATA USER & KATA SANDI (Dapat diubah oleh Admin)
+    const DEFAULT_ACCOUNTS = {
+      admin: { name: 'Admin Utama', role: 'admin', password: 'admin123', counterId: null },
+      loket1: { name: 'Petugas Loket 1', role: 'officer', password: 'pln123', counterId: 1 },
+      loket2: { name: 'Petugas Loket 2', role: 'officer', password: 'pln123', counterId: 2 },
+      loket3: { name: 'Petugas Loket 3', role: 'officer', password: 'pln123', counterId: 3 }
+    };
+
+    function loadAccounts() {
+      const saved = localStorage.getItem('pln_users_db');
+      if (saved) {
+        try { return JSON.parse(saved); } catch (e) { }
+      }
+      return DEFAULT_ACCOUNTS;
+    }
+
+    function saveAccounts(accounts) {
+      localStorage.setItem('pln_users_db', JSON.stringify(accounts));
+    }
+
+    let usersDB = loadAccounts();
+
+    // 2. STATE APLIKASI
+    const COUNTERS = {
+      1: { code: 'A', name: 'LOKET 1', service: 'Pasang Baru & Tambah Daya', color: 'blue' },
+      2: { code: 'B', name: 'LOKET 2', service: 'Pengaduan & Gangguan', color: 'emerald' },
+      3: { code: 'C', name: 'LOKET 3', service: 'Customer Service', color: 'purple' }
+    };
+
+    let appState = {
+      counters: {
+        1: { activeTicket: null, lastCalled: null },
+        2: { activeTicket: null, lastCalled: null },
+        3: { activeTicket: null, lastCalled: null }
+      },
+      lastCalledOverall: { code: '---', counterId: null, time: null },
+      queue: [],
+      logs: [],
+      countersSequence: { A: 0, B: 0, C: 0 },
+      date: new Date().toISOString().split('T')[0]
+    };
+
+    let currentUser = null; // Menyimpan sesi petugas yang login
+    let currentActiveView = 'tv';
+    let currentOfficerCounter = 1;
+    let pendingTargetView = null; // View yang dituju jika butuh login terlebih dahulu
+    let audioContext = null;
+    let firebaseInterval = null;
+
+    // Muat State Lokal
+    function loadLocalState() {
+      const saved = localStorage.getItem('pln_antrian_state');
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          const today = new Date().toISOString().split('T')[0];
+          if (parsed.date === today) {
+            appState = parsed;
+          }
+        } catch (e) { }
+      }
+    }
+
+    function persistLocalState() {
+      localStorage.setItem('pln_antrian_state', JSON.stringify(appState));
+    }
+
+    // 3. LOGIKA PROTEKSI AKSES & LOGIN
+    function checkCurrentSession() {
+      const savedSession = sessionStorage.getItem('pln_auth_user');
+      if (savedSession) {
+        try {
+          currentUser = JSON.parse(savedSession);
+        } catch (e) {
+          currentUser = null;
+        }
+      }
+      updateAuthUI();
+    }
+
+    function updateAuthUI() {
+      const container = document.getElementById('auth-status-container');
+      const lockOfficer = document.getElementById('lock-icon-officer');
+      const lockAdmin = document.getElementById('lock-icon-admin');
+
+      if (currentUser) {
+        if (lockOfficer) lockOfficer.classList.add('hidden');
+        if (lockAdmin) lockAdmin.classList.add('hidden');
+
+        container.innerHTML = `
+          <div class="flex items-center gap-2 bg-slate-800/80 px-2.5 py-1 rounded-xl border border-slate-700">
+            <i class="ph-bold ph-user text-pln-cyan"></i>
+            <span class="font-bold text-white">${currentUser.name}</span>
+            <button onclick="handleLogout()" class="ml-1 text-rose-400 hover:text-rose-300 font-bold px-1.5 py-0.5 rounded hover:bg-slate-700" title="Keluar">
+              <i class="ph-bold ph-sign-out"></i>
+            </button>
+          </div>
+        `;
+      } else {
+        if (lockOfficer) lockOfficer.classList.remove('hidden');
+        if (lockAdmin) lockAdmin.classList.remove('hidden');
+
+        container.innerHTML = `
+          <button onclick="openAuthModal()" class="px-2.5 py-1.5 rounded-lg bg-pln-yellow hover:bg-yellow-400 text-slate-900 font-black flex items-center gap-1 transition shadow">
+            <i class="ph-bold ph-lock-key"></i> <span>Login</span>
+          </button>
+        `;
+      }
+    }
+
+    function requestViewChange(viewName) {
+      // 1. Tampilan TV dan Kios adalah publik, bebas dibuka tanpa login
+      if (viewName === 'tv' || viewName === 'kiosk') {
+        switchView(viewName);
+        return;
+      }
+
+      // 2. Tampilan Meja Loket atau Admin: Wajib Login
+      if (!currentUser) {
+        pendingTargetView = viewName;
+        openAuthModal(viewName);
+        return;
+      }
+
+      // 3. Validasi Peran Jika Sudah Login
+      if (viewName === 'admin' && currentUser.role !== 'admin') {
+        alert('Akses Ditolak: Anda login sebagai Petugas Loket. Menu Admin hanya untuk Administrator.');
+        return;
+      }
+
+      if (viewName === 'officer' && currentUser.role === 'officer' && currentUser.counterId) {
+        currentOfficerCounter = currentUser.counterId;
+      }
+
+      switchView(viewName);
+    }
+
+    function openAuthModal(targetView = null) {
+      pendingTargetView = targetView;
+      const subtitle = document.getElementById('auth-modal-subtitle');
+      if (targetView === 'admin') {
+        subtitle.innerText = 'Login khusus Administrator diperlukan untuk mengakses halaman ini';
+      } else if (targetView === 'officer') {
+        subtitle.innerText = 'Login Petugas Loket diperlukan untuk memanggil antrean';
+      } else {
+        subtitle.innerText = 'Silakan masukkan username dan kata sandi akun Anda';
+      }
+
+      document.getElementById('login-username').value = '';
+      document.getElementById('login-password').value = '';
+      document.getElementById('login-error-msg').classList.add('hidden');
+      document.getElementById('auth-modal').classList.remove('hidden');
+    }
+
+    function closeAuthModal() {
+      document.getElementById('auth-modal').classList.add('hidden');
+      pendingTargetView = null;
+    }
+
+    function handleLoginSubmit(event) {
+      event.preventDefault();
+      const u = document.getElementById('login-username').value.trim().toLowerCase();
+      const p = document.getElementById('login-password').value.trim();
+      const errorMsg = document.getElementById('login-error-msg');
+
+      usersDB = loadAccounts();
+      const account = usersDB[u];
+
+      if (account && account.password === p) {
+        currentUser = {
+          username: u,
+          name: account.name,
+          role: account.role,
+          counterId: account.counterId
+        };
+        sessionStorage.setItem('pln_auth_user', JSON.stringify(currentUser));
+        updateAuthUI();
+        closeAuthModal();
+
+        // Arahkan ke view yang sebelumnya dituju
+        if (pendingTargetView) {
+          requestViewChange(pendingTargetView);
+        } else if (currentUser.role === 'admin') {
+          switchView('admin');
+        } else {
+          currentOfficerCounter = currentUser.counterId || 1;
+          switchView('officer');
+        }
+      } else {
+        errorMsg.classList.remove('hidden');
+      }
+    }
+
+    function handleLogout() {
+      if (confirm('Apakah Anda yakin ingin keluar (logout)?')) {
+        currentUser = null;
+        sessionStorage.removeItem('pln_auth_user');
+        updateAuthUI();
+        switchView('tv'); // Kembali ke tampilan publik TV
+      }
+    }
+
+    // 4. NAVIGASI TAMPILAN VIEW
+    function switchView(viewName) {
+      currentActiveView = viewName;
+      ['tv', 'kiosk', 'officer', 'admin'].forEach(v => {
+        const el = document.getElementById(`view-${v}`);
+        const btn = document.getElementById(`nav-btn-${v}`);
+        if (el) el.classList.add('hidden');
+        if (btn) {
+          btn.classList.remove('bg-pln-blue', 'text-white');
+          btn.classList.add('text-slate-300');
+        }
+      });
+
+      const targetEl = document.getElementById(`view-${viewName}`);
+      const targetBtn = document.getElementById(`nav-btn-${viewName}`);
+      if (targetEl) targetEl.classList.remove('hidden');
+      if (targetBtn) {
+        targetBtn.classList.remove('text-slate-300');
+        targetBtn.classList.add('bg-pln-blue', 'text-white');
+      }
+
+      window.location.hash = `#${viewName}`;
+      renderUI();
+    }
+
+    // 5. PENGELOLAAN MEJA KERJA PETUGAS
+    function selectOfficerCounter(id) {
+      if (currentUser && currentUser.role === 'officer' && currentUser.counterId && currentUser.counterId !== id) {
+        alert(`Perhatian: Anda login sebagai ${currentUser.name}. Akses dibatasi untuk Loket ${currentUser.counterId}.`);
+        return;
+      }
+      currentOfficerCounter = id;
+      renderOfficerPanel();
+    }
+
+    // 6. AMBIL KARCIS DI KIOS MANDIRI
+    function kioskTakeTicket(counterId) {
+      const c = COUNTERS[counterId];
+      if (!c) return;
+
+      appState.countersSequence[c.code] = (appState.countersSequence[c.code] || 0) + 1;
+      const numStr = String(appState.countersSequence[c.code]).padStart(3, '0');
+      const ticketCode = `${c.code}${numStr}`;
+      const nowStr = new Date().toLocaleTimeString('id-ID', { hour12: false });
+
+      const newTicket = {
+        code: ticketCode,
+        counterId: counterId,
+        service: c.service,
+        timeCreated: nowStr,
+        timeCalled: null,
+        timeCompleted: null,
+        status: 'waiting'
+      };
+
+      appState.queue.push(newTicket);
+      appState.logs.push(newTicket);
+      persistLocalState();
+      syncToCloud();
+      renderUI();
+
+      // Cetak Struk Fisik Otomatis
+      printKioskReceipt(newTicket, counterId);
+    }
+
+    function printKioskReceipt(ticket, counterId) {
+      const waitingAhead = appState.queue.filter(q => q.status === 'waiting' && q.counterId === counterId).length - 1;
+      document.getElementById('ticket-print-target').innerText = COUNTERS[counterId].name;
+      document.getElementById('ticket-print-service').innerText = COUNTERS[counterId].service.toUpperCase();
+      document.getElementById('ticket-print-code').innerText = ticket.code;
+      document.getElementById('ticket-print-waiting').innerText = Math.max(0, waitingAhead);
+      document.getElementById('ticket-print-time').innerText = new Date().toLocaleString('id-ID');
+
+      const printEl = document.getElementById('print-area');
+      printEl.classList.remove('hidden');
+      setTimeout(() => {
+        window.print();
+        printEl.classList.add('hidden');
+      }, 250);
+    }
+
+    // 7. AKSI PETUGAS LOKET: PANGGIL / SELESAI
+    function officerCallNext() {
+      initAudio();
+      const nextIndex = appState.queue.findIndex(q => q.counterId === currentOfficerCounter && q.status === 'waiting');
+      
+      if (nextIndex === -1) {
+        alert(`Tidak ada antrean yang sedang menunggu untuk ${COUNTERS[currentOfficerCounter].name}.`);
+        return;
+      }
+
+      const ticket = appState.queue[nextIndex];
+      ticket.status = 'called';
+      ticket.timeCalled = new Date().toLocaleTimeString('id-ID', { hour12: false });
+
+      appState.counters[currentOfficerCounter].activeTicket = ticket;
+      appState.counters[currentOfficerCounter].lastCalled = ticket.timeCalled;
+
+      appState.lastCalledOverall = {
+        code: ticket.code,
+        counterId: currentOfficerCounter,
+        service: ticket.service,
+        time: ticket.timeCalled
+      };
+
+      persistLocalState();
+      syncToCloud();
+      renderUI();
+
+      // Bunyikan Audio Chime & Panggilan Suara
+      playChimeAndCall(ticket.code, currentOfficerCounter);
+    }
+
+    function officerRecall() {
+      const active = appState.counters[currentOfficerCounter].activeTicket;
+      if (!active) {
+        alert('Belum ada tiket aktif yang dipanggil di loket ini.');
+        return;
+      }
+      playChimeAndCall(active.code, currentOfficerCounter);
+    }
+
+    function officerComplete() {
+      const active = appState.counters[currentOfficerCounter].activeTicket;
+      if (!active) {
+        alert('Tidak ada antrean aktif yang sedang dilayani.');
+        return;
+      }
+
+      active.status = 'done';
+      active.timeCompleted = new Date().toLocaleTimeString('id-ID', { hour12: false });
+
+      // Update di log
+      const logItem = appState.logs.find(l => l.code === active.code);
+      if (logItem) {
+        logItem.status = 'done';
+        logItem.timeCompleted = active.timeCompleted;
+      }
+
+      // Hapus dari daftar antrean aktif
+      appState.queue = appState.queue.filter(q => q.code !== active.code);
+      appState.counters[currentOfficerCounter].activeTicket = null;
+
+      persistLocalState();
+      syncToCloud();
+      renderUI();
+    }
+
+    // 8. AUDIO SYNTHESIZER & PEMANGGILAN SUARA BAHASA INDONESIA
+    function initAudio() {
+      if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioContext.state === 'suspended') {
+        audioContext.resume();
+      }
+    }
+
+    function playChimeAndCall(code = null, counterId = null) {
+      initAudio();
+      const currentCode = code || appState.lastCalledOverall.code;
+      const currentCounter = counterId || appState.lastCalledOverall.counterId;
+
+      if (!currentCode || currentCode === '---') return;
+
+      // Nada Ding-Dong Chime 2 Frekuensi
+      const now = audioContext.currentTime;
+      const osc1 = audioContext.createOscillator();
+      const osc2 = audioContext.createOscillator();
+      const gain = audioContext.createGain();
+
+      osc1.type = 'sine';
+      osc2.type = 'sine';
+      osc1.frequency.setValueAtTime(587.33, now); // D5
+      osc1.frequency.setValueAtTime(880.00, now + 0.25); // A5
+
+      gain.gain.setValueAtTime(0.25, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.9);
+
+      osc1.connect(gain);
+      gain.connect(audioContext.destination);
+
+      osc1.start(now);
+      osc1.stop(now + 0.9);
+
+      // Suara Bahasa Indonesia
+      setTimeout(() => {
+        if ('speechSynthesis' in window) {
+          const letter = currentCode.charAt(0);
+          const numbers = currentCode.slice(1).split('').join(' ');
+          const text = `Nomor antrian, ${letter}, ${numbers}, silakan menuju ke Loket ${currentCounter}`;
+          
+          const utter = new SpeechSynthesisUtterance(text);
+          utter.lang = 'id-ID';
+          utter.rate = 0.9;
+          utter.pitch = 1.0;
+          window.speechSynthesis.speak(utter);
+        }
+      }, 900);
+    }
+
+    // 9. RENDER UI KE SETIAP KOMPONEN
+    function renderUI() {
+      renderTVDisplay();
+      renderKioskMetrics();
+      renderOfficerPanel();
+      renderAdminDashboard();
+    }
+
+    function renderTVDisplay() {
+      const active = appState.lastCalledOverall;
+      document.getElementById('tv-active-number').innerText = active.code || '---';
+      document.getElementById('tv-active-counter').innerText = active.counterId ? `LOKET ${active.counterId}` : '---';
+      document.getElementById('tv-active-service').innerText = active.service || 'Menunggu antrean...';
+
+      // Status 3 Loket
+      [1, 2, 3].forEach(id => {
+        const c = appState.counters[id];
+        const numEl = document.getElementById(`tv-counter-${id}`);
+        const statEl = document.getElementById(`tv-status-${id}`);
+        if (c && c.activeTicket) {
+          numEl.innerText = c.activeTicket.code;
+          statEl.innerText = `Sedang Melayani (${c.activeTicket.timeCalled || ''})`;
+          statEl.className = 'text-[11px] font-bold text-emerald-600';
+        } else {
+          numEl.innerText = '---';
+          statEl.innerText = 'Siaga';
+          statEl.className = 'text-[11px] font-semibold text-slate-400 italic';
+        }
+      });
+
+      // Total Pengunjung
+      document.getElementById('tv-today-total').innerText = `${appState.logs.length} Orang`;
+      const waitingTotal = appState.queue.filter(q => q.status === 'waiting').length;
+      document.getElementById('tv-waiting-total').innerText = `${waitingTotal} Antrean`;
+    }
+
+    function renderKioskMetrics() {
+      [1, 2, 3].forEach(id => {
+        const waitCount = appState.queue.filter(q => q.counterId === id && q.status === 'waiting').length;
+        const el = document.getElementById(`kiosk-wait-${id}`);
+        if (el) el.innerText = `${waitCount} Antre`;
+      });
+    }
+
+    function renderOfficerPanel() {
+      // Sorot Meja yang Dipilih
+      [1, 2, 3].forEach(id => {
+        const btn = document.getElementById(`btn-select-counter-${id}`);
+        if (!btn) return;
+        const isCurrent = (id === currentOfficerCounter);
+        const icon = btn.querySelector('i');
+        if (isCurrent) {
+          btn.className = 'p-4 rounded-2xl border-2 text-left transition flex items-center justify-between bg-blue-50 border-blue-600 shadow-md';
+          if (icon) {
+            icon.className = 'ph-fill ph-check-circle text-2xl text-blue-600';
+          }
+        } else {
+          btn.className = 'p-4 rounded-2xl border-2 text-left transition flex items-center justify-between bg-white border-slate-200 hover:border-slate-400';
+          if (icon) {
+            icon.className = 'ph-bold ph-circle text-2xl text-slate-300';
+          }
+        }
+      });
+
+      const cInfo = COUNTERS[currentOfficerCounter];
+      document.getElementById('officer-active-badge').innerText = `Aktif di ${cInfo.name} (${cInfo.code})`;
+      document.getElementById('officer-counter-title').innerText = `${cInfo.name} (Kode ${cInfo.code})`;
+
+      const activeTicket = appState.counters[currentOfficerCounter].activeTicket;
+      const numEl = document.getElementById('officer-current-number');
+      const timeEl = document.getElementById('officer-current-time');
+      const statBadge = document.getElementById('officer-ticket-status');
+
+      if (activeTicket) {
+        numEl.innerText = activeTicket.code;
+        timeEl.innerText = `Dipanggil pukul ${activeTicket.timeCalled || '-'}`;
+        statBadge.innerText = 'Sedang Melayani';
+        statBadge.className = 'px-3 py-1 bg-emerald-100 text-emerald-800 text-xs font-bold rounded-full';
+      } else {
+        numEl.innerText = '---';
+        timeEl.innerText = 'Siap memanggil antrean berikutnya';
+        statBadge.innerText = 'Siaga / Kosong';
+        statBadge.className = 'px-3 py-1 bg-yellow-100 text-yellow-800 text-xs font-bold rounded-full';
+      }
+
+      // Hitung Otomatis Hari Ini khusus Meja Ini
+      const totalIn = appState.logs.filter(l => l.counterId === currentOfficerCounter).length;
+      const totalWait = appState.queue.filter(q => q.counterId === currentOfficerCounter && q.status === 'waiting').length;
+      const totalDone = appState.logs.filter(l => l.counterId === currentOfficerCounter && l.status === 'done').length;
+
+      document.getElementById('officer-stat-in').innerText = totalIn;
+      document.getElementById('officer-stat-wait').innerText = totalWait;
+      document.getElementById('officer-stat-done').innerText = totalDone;
+      document.getElementById('officer-waiting-badge').innerText = `${totalWait} orang`;
+
+      // Daftar Antrean Menunggu di Meja Ini
+      const listEl = document.getElementById('officer-queue-list');
+      const waitingList = appState.queue.filter(q => q.counterId === currentOfficerCounter && q.status === 'waiting');
+
+      if (waitingList.length === 0) {
+        listEl.innerHTML = '<div class="text-center text-slate-400 py-8 text-xs italic">Tidak ada antrean menunggu</div>';
+      } else {
+        listEl.innerHTML = waitingList.map((t, idx) => `
+          <div class="flex items-center justify-between p-2.5 rounded-xl border border-slate-100 bg-slate-50">
+            <div class="flex items-center gap-2">
+              <span class="w-6 h-6 rounded-full bg-slate-200 text-slate-700 text-xs font-bold flex items-center justify-center">${idx + 1}</span>
+              <span class="font-mono font-bold text-slate-900">${t.code}</span>
+            </div>
+            <span class="text-[11px] text-slate-400 font-mono">${t.timeCreated}</span>
+          </div>
+        `).join('');
+      }
+    }
+
+    function renderAdminDashboard() {
+      // 4 Metrik
+      document.getElementById('admin-stat-total').innerText = appState.logs.length;
+      const doneTotal = appState.logs.filter(l => l.status === 'done').length;
+      const waitTotal = appState.queue.filter(q => q.status === 'waiting').length;
+      document.getElementById('admin-stat-done').innerText = doneTotal;
+      document.getElementById('admin-stat-wait').innerText = waitTotal;
+
+      // Tabel Akun & Sandi
+      usersDB = loadAccounts();
+      const userTbody = document.getElementById('admin-user-table-body');
+      userTbody.innerHTML = `
+        <tr>
+          <td class="p-2.5 font-bold font-mono text-slate-900">admin</td>
+          <td class="p-2.5 font-semibold text-blue-700">Administrator Utama</td>
+          <td class="p-2.5 font-mono">Semua</td>
+          <td class="p-2.5 font-mono text-slate-600">${usersDB.admin ? usersDB.admin.password : '******'}</td>
+        </tr>
+        <tr>
+          <td class="p-2.5 font-bold font-mono text-slate-900">loket1</td>
+          <td class="p-2.5">Petugas Loket 1</td>
+          <td class="p-2.5 font-bold font-mono text-blue-600">Kode A</td>
+          <td class="p-2.5 font-mono text-slate-600">${usersDB.loket1 ? usersDB.loket1.password : '******'}</td>
+        </tr>
+        <tr>
+          <td class="p-2.5 font-bold font-mono text-slate-900">loket2</td>
+          <td class="p-2.5">Petugas Loket 2</td>
+          <td class="p-2.5 font-bold font-mono text-emerald-600">Kode B</td>
+          <td class="p-2.5 font-mono text-slate-600">${usersDB.loket2 ? usersDB.loket2.password : '******'}</td>
+        </tr>
+        <tr>
+          <td class="p-2.5 font-bold font-mono text-slate-900">loket3</td>
+          <td class="p-2.5">Petugas Loket 3</td>
+          <td class="p-2.5 font-bold font-mono text-purple-600">Kode C</td>
+          <td class="p-2.5 font-mono text-slate-600">${usersDB.loket3 ? usersDB.loket3.password : '******'}</td>
+        </tr>
+      `;
+
+      // Tabel Riwayat Log Kunjungan
+      const logTbody = document.getElementById('admin-log-table-body');
+      if (appState.logs.length === 0) {
+        logTbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-slate-400 italic">Belum ada aktivitas antrean hari ini</td></tr>`;
+      } else {
+        logTbody.innerHTML = appState.logs.slice().reverse().map((l, i) => {
+          let badge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800">Menunggu</span>';
+          if (l.status === 'called') badge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-800">Sedang Dilayani</span>';
+          if (l.status === 'done') badge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">Selesai</span>';
+
+          return `
+            <tr>
+              <td class="p-2.5 text-slate-500 font-mono">${appState.logs.length - i}</td>
+              <td class="p-2.5 font-bold font-mono text-slate-900">${l.code}</td>
+              <td class="p-2.5 font-semibold text-slate-700">${COUNTERS[l.counterId].name}</td>
+              <td class="p-2.5 font-mono text-slate-600">${l.timeCreated || '-'}</td>
+              <td class="p-2.5 font-mono text-slate-600">${l.timeCalled || '-'}</td>
+              <td class="p-2.5 font-mono text-slate-600">${l.timeCompleted || '-'}</td>
+              <td class="p-2.5">${badge}</td>
+            </tr>
+          `;
+        }).join('');
+      }
+    }
+
+    // 10. UBAH KATA SANDI OLEH ADMIN
+    function handleAdminChangePassword(event) {
+      event.preventDefault();
+      const targetUser = document.getElementById('pwd-target-user').value;
+      const newPwd = document.getElementById('pwd-new-value').value.trim();
+
+      if (!newPwd || newPwd.length < 4) {
+        alert('Kata sandi baru minimal 4 karakter.');
+        return;
+      }
+
+      usersDB = loadAccounts();
+      if (usersDB[targetUser]) {
+        usersDB[targetUser].password = newPwd;
+        saveAccounts(usersDB);
+        alert(`Berhasil! Kata sandi untuk akun "${targetUser}" telah diperbarui menjadi: ${newPwd}`);
+        document.getElementById('pwd-new-value').value = '';
+        renderAdminDashboard();
+      }
+    }
+
+    // 11. EKSPOR EXCEL & CETAK PDF
+    function exportToExcel() {
+      if (appState.logs.length === 0) {
+        alert('Belum ada data antrean hari ini untuk diekspor.');
+        return;
+      }
+
+      let csvContent = '\uFEFF'; // UTF-8 BOM
+      csvContent += 'LAPORAN REKAPITULASI PELAYANAN ANTREAN HARIAN\n';
+      csvContent += 'PT PLN (PERSERO) UP3 MEDAN UTARA - ULP MEDAN TIMUR\n';
+      csvContent += `Tanggal: ${new Date().toLocaleDateString('id-ID')}\n\n`;
+
+      csvContent += 'No,Kode Tiket,Loket Tujuan,Jenis Layanan,Jam Ambil,Jam Dipanggil,Jam Selesai,Status\n';
+
+      appState.logs.forEach((item, index) => {
+        csvContent += `${index + 1},"${item.code}","${COUNTERS[item.counterId].name}","${item.service}","${item.timeCreated || '-'}","${item.timeCalled || '-'}","${item.timeCompleted || '-'}","${item.status}"\n`;
+      });
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `Rekap_Antrean_PLN_MedanTimur_${appState.date}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    function printPdfReport() {
+      document.getElementById('report-date-print').innerText = new Date().toLocaleDateString('id-ID', {
+        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+      });
+      document.getElementById('report-admin-user').innerText = currentUser ? currentUser.name : 'Administrator';
+
+      // Ringkasan Loket 1-3
+      let summaryRows = '';
+      [1, 2, 3].forEach(id => {
+        const c = COUNTERS[id];
+        const total = appState.logs.filter(l => l.counterId === id).length;
+        const done = appState.logs.filter(l => l.counterId === id && l.status === 'done').length;
+        const wait = appState.queue.filter(q => q.counterId === id && q.status === 'waiting').length;
+
+        summaryRows += `
+          <tr>
+            <td style="border: 1px solid #cbd5e1; padding: 6px; font-weight: bold;">${c.name}</td>
+            <td style="border: 1px solid #cbd5e1; padding: 6px; text-align: center; font-weight: bold;">Kode ${c.code}</td>
+            <td style="border: 1px solid #cbd5e1; padding: 6px;">${c.service}</td>
+            <td style="border: 1px solid #cbd5e1; padding: 6px; text-align: center; font-weight: bold;">${total}</td>
+            <td style="border: 1px solid #cbd5e1; padding: 6px; text-align: center; color: green; font-weight: bold;">${done}</td>
+            <td style="border: 1px solid #cbd5e1; padding: 6px; text-align: center; color: orange; font-weight: bold;">${wait}</td>
+          </tr>
+        `;
+      });
+      document.getElementById('report-table-summary').innerHTML = summaryRows;
+
+      // Tabel Log Pengunjung
+      let logRows = '';
+      if (appState.logs.length === 0) {
+        logRows = `<tr><td colspan="7" style="border: 1px solid #cbd5e1; padding: 6px; text-align: center; color: #64748b;">Belum ada aktivitas transaksi antrean</td></tr>`;
+      } else {
+        appState.logs.forEach((l, idx) => {
+          logRows += `
+            <tr>
+              <td style="border: 1px solid #cbd5e1; padding: 4px; text-align: center;">${idx + 1}</td>
+              <td style="border: 1px solid #cbd5e1; padding: 4px; font-weight: bold;">${l.code}</td>
+              <td style="border: 1px solid #cbd5e1; padding: 4px;">${COUNTERS[l.counterId].name}</td>
+              <td style="border: 1px solid #cbd5e1; padding: 4px; text-align: center;">${l.timeCreated || '-'}</td>
+              <td style="border: 1px solid #cbd5e1; padding: 4px; text-align: center;">${l.timeCalled || '-'}</td>
+              <td style="border: 1px solid #cbd5e1; padding: 4px; text-align: center;">${l.timeCompleted || '-'}</td>
+              <td style="border: 1px solid #cbd5e1; padding: 4px; text-align: center; text-transform: uppercase;">${l.status}</td>
+            </tr>
+          `;
+        });
+      }
+      document.getElementById('report-table-logs').innerHTML = logRows;
+
+      const reportEl = document.getElementById('report-print-area');
+      reportEl.classList.remove('hidden');
+      setTimeout(() => {
+        window.print();
+        reportEl.classList.add('hidden');
+      }, 250);
+    }
+
+    function promptResetQueue() {
+      if (confirm('PERINGATAN: Apakah Anda yakin ingin mereset seluruh antrean hari ini ke angka 0? Data tiket aktif akan dihapus.')) {
+        appState.counters = {
+          1: { activeTicket: null, lastCalled: null },
+          2: { activeTicket: null, lastCalled: null },
+          3: { activeTicket: null, lastCalled: null }
+        };
+        appState.lastCalledOverall = { code: '---', counterId: null, time: null };
+        appState.queue = [];
+        appState.logs = [];
+        appState.countersSequence = { A: 0, B: 0, C: 0 };
+        persistLocalState();
+        syncToCloud();
+        renderUI();
+        alert('Antrean hari ini berhasil direset.');
+      }
+    }
+
+    // 12. CLOUD SYNC REALTIME FIREBASE REST API
+    function getFirebaseUrl() {
+      return localStorage.getItem('pln_firebase_url') || '';
+    }
+
+    function openCloudModal() {
+      document.getElementById('firebase-url-input').value = getFirebaseUrl();
+      document.getElementById('cloud-modal').classList.remove('hidden');
+    }
+
+    function closeCloudModal() {
+      document.getElementById('cloud-modal').classList.add('hidden');
+    }
+
+    function saveFirebaseUrl() {
+      let url = document.getElementById('firebase-url-input').value.trim();
+      if (url.endsWith('/')) url = url.slice(0, -1);
+      localStorage.setItem('pln_firebase_url', url);
+      closeCloudModal();
+      setupFirebaseSync();
+    }
+
+    async function syncToCloud() {
+      const dbUrl = getFirebaseUrl();
+      if (!dbUrl) return;
+
+      try {
+        await fetch(`${dbUrl}/antrean_data.json`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(appState)
+        });
+      } catch (err) {
+        console.warn('Cloud sync error:', err);
+      }
+    }
+
+    function setupFirebaseSync() {
+      const dbUrl = getFirebaseUrl();
+      const dot = document.getElementById('cloud-dot');
+      const label = document.getElementById('cloud-label');
+
+      if (!dbUrl) {
+        dot.className = 'w-2 h-2 rounded-full bg-slate-400';
+        label.innerText = 'Mode Offline';
+        return;
+      }
+
+      dot.className = 'w-2 h-2 rounded-full bg-emerald-400 animate-pulse';
+      label.innerText = 'Cloud Online';
+
+      if (firebaseInterval) clearInterval(firebaseInterval);
+
+      // Polling Real-time setiap 1.5 detik
+      firebaseInterval = setInterval(async () => {
+        try {
+          const res = await fetch(`${dbUrl}/antrean_data.json`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data && data.date === appState.date) {
+              const previousActive = appState.lastCalledOverall ? appState.lastCalledOverall.code : null;
+              appState = data;
+              persistLocalState();
+              renderUI();
+
+              // Bunyikan chime di Display TV jika ada panggilan baru dari laptop loket
+              if (currentActiveView === 'tv' && data.lastCalledOverall && data.lastCalledOverall.code !== '---' && data.lastCalledOverall.code !== previousActive) {
+                playChimeAndCall(data.lastCalledOverall.code, data.lastCalledOverall.counterId);
+              }
+            }
+          }
+        } catch (e) { }
+      }, 1500);
+    }
+
+    // 13. JAM DIGITAL
+    setInterval(() => {
+      const clockEl = document.getElementById('live-clock-tv');
+      if (clockEl) {
+        clockEl.innerText = new Date().toLocaleTimeString('id-ID', { hour12: false }) + ' WIB';
+      }
+    }, 1000);
+
+    // INISIALISASI SAAT PERTAMA KALI HALAMAN DIBUKA
+    window.addEventListener('DOMContentLoaded', () => {
+      loadLocalState();
+      checkCurrentSession();
+      setupFirebaseSync();
+
+      // Cek Hash URL Routing (contoh: #tv, #kiosk, #officer, #admin)
+      const hash = window.location.hash.replace('#', '');
+      if (['tv', 'kiosk', 'officer', 'admin'].includes(hash)) {
+        requestViewChange(hash);
+      } else {
+        requestViewChange('tv'); // Bawaan awal ke Display TV (Bebas)
+      }
+    });
+  </script>
+</body>
+</html>
